@@ -23,39 +23,42 @@ print("Starting the P2MM bot...")
 # Get configuration.json
 with open("config.json", "r") as config:
     data = json.load(config)
-    token = data["token"]
+    token = data["token"] # P2MM Bot Token
     debug_prefix = data["debug_prefix"]
+    bot_test_channel_id = int(data["bot_test_channel_id"])
+    welcome_channel_id = int(data["welcome_channel_id"])
 
-p2mm_server_id = discord.Object(id=839651379034193920)
-
-class P2MMBot(commands.Bot):
+class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
         super().__init__(intents=intents, command_prefix=debug_prefix)
-        # The command tree holds all the slash commands used for the P2MM Bot
-        #self.tree = app_commands.CommandTree(self)
+        self.tree = app_commands.CommandTree(self)
 
     # Runs when the bot is being setup
     async def setup_hook(self):
         print("Setting up bot hook...")
-        self.tree.copy_global_to(guild=p2mm_server_id)
-        await self.tree.sync(guild=p2mm_server_id)
+        logging.info("Setting up bot hook...")
+        guilds = [guild async for guild in client.fetch_guilds(limit=1)]
+        print(guilds)
+        self.tree.copy_global_to(guild=discord.Object(id=839651379034193920))
+        await self.tree.sync(guild=None)
         print("Finished setting up bot hook...")
+        logging.info("Finished setting up bot hook...")
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = P2MMBot(command_prefix=debug_prefix, intents=intents)
 
-
 # Runs when the bot has finished setting up
 @client.event
 async def on_ready():
-    global bot_test_channel
     print("Almost ready...")
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name ="Portal 2: Multiplayer Mod"))
+    logging.info("Almost ready...")
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="Portal 2: Multiplayer Mod"))
+    #await client.get_channel(bot_test_channel_id).send("I AM ALIVE!!!")
     print(f"Logged on as {client.user}!")
     print("----------------------------")
-    bot_test_channel = client.get_channel(1062430492558888980)
-    await bot_test_channel.send("I AM ALIVE!!!")
+    logging.info(f"Logged on as {client.user}!")
+    logging.info("----------------------------")
 
 # Simply responds with hello back to the user who issued the command
 @client.tree.command(description="Says hello back")
