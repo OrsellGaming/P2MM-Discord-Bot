@@ -5,7 +5,18 @@ from discord.ext import commands
 import json
 import logging
 
-log_handler = logging.FileHandler(filename='Logs/p2mmbot.log', encoding='utf-8', mode='w')
+logger = logging.getLogger("discord")
+logger.setLevel(logging.INFO)
+
+handler = logging.FileHandler(
+    filename = "Logs/p2mmbot.log", # Log location
+    mode = "w", # Write mode, overides current log
+    encoding = "utf-8", # Log format type
+)
+dt_fmt = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 print("Starting the P2MM bot...")
 
