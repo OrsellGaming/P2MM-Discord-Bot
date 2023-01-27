@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 import json
 import logging
+import asyncio
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.INFO)
@@ -37,7 +38,7 @@ class P2MMBot(discord.Client):
     async def setup_hook(self):
         print("Setting up bot hook...")
         logging.info("Setting up bot hook...")
-        guilds = [guild async for guild in client.fetch_guilds(limit=1)]
+        guilds = [guild async for guild in self.fetch_guilds(limit=1)]
         print(guilds)
         self.tree.copy_global_to(guild=discord.Object(id=839651379034193920))
         await self.tree.sync(guild=None)
@@ -45,6 +46,7 @@ class P2MMBot(discord.Client):
         logging.info("Finished setting up bot hook...")
 
 intents = discord.Intents.default()
+intents.guilds = True
 intents.message_content = True
 client = P2MMBot(command_prefix=debug_prefix, intents=intents)
 
@@ -64,40 +66,51 @@ async def on_ready():
 @client.tree.command(description="Says hello back")
 async def hello(interaction: discord.Interaction):
     """Says hello!"""
-    await interaction.response.send_message(f'Hi, {interaction.user.mention}')
+    await interaction.response.send_message(f"Hi, {interaction.user.mention}")
 
 # Reponds back with when a member joinned the server
 @client.tree.command(description="Get when a user joinned the server")
 @app_commands.describe(member="The user you want to get the joined date from; defaults to the user who uses the command")
 async def date_joined(interaction: discord.Interaction, member: Optional[discord.Member] = None):
-    """Says when a member joined."""
+    """Get when a user joinned the server"""
+
     # If no member is explicitly provided then we use the command user here
     member = member or interaction.user
 
     # The format_dt function formats the date time into a human readable representation in the official client
-    await interaction.response.send_message(f'{member} joined {discord.utils.format_dt(member.joined_at)}')
+    await interaction.response.send_message(f"{member} joined {discord.utils.format_dt(member.joined_at)}")
 
 @client.tree.command(description="Turns off the P2MM bot")
 async def shutdown(interaction: discord.Interaction):
     """Shutsdown the P2MM bot"""
+
     await interaction.response.send_message("Shutting down, good bye!")
+    print("The P2MM Bot Has been shutdown...")
+    logging.info("The P2MM Bot Has been shutdown...")
+    await asyncio.sleep(1)
     await client.close()
 
 # Called on whenever someone sends a message
 @client.event
-async def on_message(self, message):
-    if message.author.id == self.user.id:
+async def on_message(message):
+    if (message.author.id == client.user.id) or (not message.content.startswith(debug_prefix)):
          return
     
-    if message.content.startswith('!hello'):
-         await message.reply('Hello!', mention_author=True)
-    #await message.reply('I am replying to this message', mention_author=True)
-    print(f'Message from id {message.author.id} author name {message.author}: {message.content}')
+    if "hello" in message.content:
+         await message.reply("Hello!", mention_author=True)
+    
+    print(f"Message from id {message.author.id} author name {message.author}: {message.content}")
+    logging.info(f"Message from id {message.author.id} author name {message.author}: {message.content}")
 
 # Runs when someone joins the server
-@client.command()
-async def joined(ctx, member: discord.Member):
+@client.event
+async def on_member_join(member: discord.Member):
     """Says when a member joined."""
-    await ctx.send(f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
+    await client.get_channel(welcome_channel_id).send(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
+    logging.info(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
 
-client.run(token, log_handler=log_handler, log_level=logging.INFO)
+@client.event
+async def on_guild_join(self, guild:discord.Guild):
+    client.get_channel(discord.utils.get(predicate, iterable))
+
+client.run(token, log_handler=None)
