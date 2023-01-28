@@ -90,6 +90,25 @@ async def shutdown(interaction: discord.Interaction):
     await asyncio.sleep(1)
     await client.close()
 
+@client.tree.command(description="Pings the bot")
+async def ping(interaction: discord.Interaction):
+    """Pings the bot"""
+
+    embed = discord.Embed(title="Ping", description=f"Pong! {round((client.latency * 1000), 2)} ms")
+    await interaction.response.send_message(embed=embed)
+
+@client.tree.command(description="Test DMing using the bot")
+@app_commands.describe(member="The specified user to DM; defaults to the user who uses the command")
+async def dm_test(interaction: discord.Interaction, member: Optional[discord.Member] = None):
+    """Test DMing using the bot"""
+
+    # If no member is explicitly provided then we use the command user here
+    member = member or interaction.user
+    
+    # Send the DM to the specified user
+    await member.send("Hello from the P2MM Bot!")
+    await interaction.response.send_message(f"Sent DM message to {member}")
+
 # Called on whenever someone sends a message
 @client.event
 async def on_message(message):
