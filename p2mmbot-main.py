@@ -6,7 +6,7 @@ import json
 import logging
 import asyncio
 
-logger = logging.getLogger("discord")
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 handler = logging.FileHandler(
