@@ -26,6 +26,17 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 print("Starting the P2MM bot...")
+logging.info("Starting the P2MM bot...")
+
+print("Grabbing config.json information...")
+logging.info("Grabbing config.json information...")
+
+# Get config.json
+if not os.path.exists("config.json"):
+    print("ERROR: config.json contains info the Discord bot needs to start!")
+    print("ERROR: Shuting down...")
+    logging.error("ERROR: config.json contains info the Discord bot needs to start!")
+    logging.error("ERROR: Shuting down...")
 
 # Get configuration.json
 with open("config.json", "r") as config:
