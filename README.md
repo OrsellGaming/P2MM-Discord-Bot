@@ -22,4 +22,5 @@ The Offical Discord Bot for the Portal 2: Multiplayer Mod Discord!
 
 ## Resources:
 My Discord: Orsell#5280
+
 The P2MM Discord: https://discord.com/invite/kW3nG6GKpF
