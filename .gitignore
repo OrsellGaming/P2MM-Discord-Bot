@@ -155,3 +155,5 @@ cython_debug/
 # The config.json is ignored because it contains the token which is sensitive info
 config.json
 Logs
+P2MM.pem
+server.bat
