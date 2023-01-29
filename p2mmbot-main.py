@@ -9,13 +9,14 @@ import asyncio
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-handler = logging.FileHandler(
-    filename = "Logs/p2mmbot.log", # Log location
-    mode = "w", # Write mode, overides current log
-    encoding = "utf-8", # Log format type
+handler = logging.handlers.RotatingFileHandler(
+    filename="Logs/p2mmbot.log", # Log location
+    encoding="utf-8", # Log encoding
+    mode="w", # Make sure when ever the bot starts it starts fresh with logs
+    maxBytes=32 * 1024 * 1024,  # 32 MiB will be the max size for log files
+    backupCount=5,  # Rotate through 5 files
 )
-dt_fmt = '%Y-%m-%d %H:%M:%S'
-formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -41,7 +42,7 @@ class P2MMBot(discord.Client):
         guilds = [guild async for guild in self.fetch_guilds(limit=1)]
         print(guilds)
         self.tree.copy_global_to(guild=discord.Object(id=839651379034193920))
-        await self.tree.sync(guild=None)
+        await self.tree.sync()
         print("Finished setting up bot hook...")
         logging.info("Finished setting up bot hook...")
 
@@ -84,6 +85,11 @@ async def date_joined(interaction: discord.Interaction, member: Optional[discord
 async def shutdown(interaction: discord.Interaction):
     """Shutsdown the P2MM bot"""
 
+    # Check if user has the administrator role
+    if not check_admin(interaction.user):
+        await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
+        return
+
     await interaction.response.send_message("Shutting down, good bye!")
     print("The P2MM Bot Has been shutdown...")
     logging.info("The P2MM Bot Has been shutdown...")
@@ -101,6 +107,11 @@ async def ping(interaction: discord.Interaction):
 @app_commands.describe(member="The specified user to DM; defaults to the user who uses the command")
 async def dm_test(interaction: discord.Interaction, member: Optional[discord.Member] = None):
     """Test DMing using the bot"""
+
+    # Check if user has the administrator role
+    if not check_admin(interaction.user):
+        await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
+        return
 
     # If no member is explicitly provided then we use the command user here
     member = member or interaction.user
@@ -128,8 +139,21 @@ async def on_member_join(member: discord.Member):
     await client.get_channel(welcome_channel_id).send(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
     logging.info(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
 
-@client.event
-async def on_guild_join(self, guild:discord.Guild):
-    client.get_channel(discord.utils.get(predicate, iterable))
+# @client.event
+# async def on_guild_join(self, guild:discord.Guild):
+#     client.get_channel(discord.utils.get(predicate, iterable))
+
+def check_admin(target_member: discord.Member) -> bool:
+    """Check if the specified user has the Administrator role.
+
+    Args:
+        target_member (discord.Member): Member/User to target.
+
+    Returns:
+        bool: Returns True if the user has the Administrator role.
+    """
+    if discord.utils.get(target_member.roles, name="Administrator"):
+        return True
+    return False
 
 client.run(token, log_handler=None)
