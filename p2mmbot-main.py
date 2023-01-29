@@ -37,8 +37,8 @@ if not os.path.exists("config.json"):
     print("ERROR: Shuting down...")
     logging.error("ERROR: config.json contains info the Discord bot needs to start!")
     logging.error("ERROR: Shuting down...")
+    exit("config.json not found!")
 
-# Get configuration.json
 with open("config.json", "r") as config:
     data = json.load(config)
     token = data["token"] # P2MM Bot Token
