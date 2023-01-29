@@ -42,9 +42,7 @@ if not os.path.exists("config.json"):
 with open("config.json", "r") as config:
     data = json.load(config)
     token = data["token"] # P2MM Bot Token
-    debug_prefix = data["debug_prefix"]
-    bot_test_channel_id = int(data["bot_test_channel_id"])
-    welcome_channel_id = int(data["welcome_channel_id"])
+    debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
 
 class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
@@ -149,11 +147,11 @@ async def on_message(message):
     logging.info(f"Message from id {message.author.id} author name {message.author}: {message.content}")
 
 # Runs when someone joins the server
-@client.event
-async def on_member_join(member: discord.Member):
-    """Says when a member joined."""
-    await client.get_channel(welcome_channel_id).send(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
-    logging.info(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
+# @client.event
+# async def on_member_join(member: discord.Member):
+#     """Says when a member joined."""
+#     await client.get_channel(welcome_channel_id).send(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
+#     logging.info(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
 
 # @client.event
 # async def on_guild_join(self, guild:discord.Guild):
