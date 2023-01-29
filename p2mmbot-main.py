@@ -6,6 +6,10 @@ import json
 import logging
 from logging import handlers
 import asyncio
+import os
+
+if not os.path.exists("Logs"):
+    os.mkdir("Logs")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
