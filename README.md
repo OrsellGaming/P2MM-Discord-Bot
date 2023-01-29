@@ -1,7 +1,7 @@
 # P2MM-Discord-Bot
 The Offical Discord Bot for the Portal 2: Multiplayer Mod Discord!
 
-*Supports being run on both Linux and Windows Operating Systems!*
+*Supports being run on Linux and Windows Operating Systems!*
 
 ## Requirements:
 - Python 3.10 or above
