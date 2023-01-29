@@ -6,9 +6,12 @@ The Offical Discord Bot for the Portal 2: Multiplayer Mod Discord!
 ## Requirements:
 - Python 3.10 or above
 - Pip (Should be installed with Python, but if not, please install it)
-- tmux **LINUX ONLY** (Used to allow closing ssh connections to a external server without ending the Python script)
 - You must give credit if you fork this and use the code for your purposes, NO CLOSED SOURCE!!!
 
+*Recommendation for Linux!*
+*If using Linux on a external server I recommend using tmux.*
+*tmux is makes a new terminal instance not linked to whatever remote connection tool you are using.*
+*That way when you disconnect the Discord bot won't close down.*
 ## Setup:
 1. Download this repo anywhere, easy pesy lemon sqweezy.
 2. Create a json file named config.json or use the templateconfig.json file and rename it to config.json.
