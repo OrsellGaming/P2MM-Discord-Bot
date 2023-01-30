@@ -6,7 +6,7 @@ The Offical Discord Bot for the Portal 2: Multiplayer Mod Discord!
 ## Requirements:
 - Python 3.10 or above
 - Pip (Should be installed with Python, but if not, please install it)
-- You must give credit if you fork this and use the code for your purposes, NO CLOSED SOURCE!!!
+- You must give credit if you fork this for your own purposes, NO CLOSED SOURCE!!!
 
 *Recommendation for Linux!*
 *If using Linux on a external server, I recommend using tmux.*
