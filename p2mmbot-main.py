@@ -25,24 +25,39 @@ formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", 
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-print("Starting the P2MM bot...")
-logging.info("Starting the P2MM bot...")
+def check_admin(target_member: discord.Member) -> bool:
+    """Check if the specified user has the Administrator role.
 
-print("Grabbing config.json information...")
-logging.info("Grabbing config.json information...")
+    Args:
+        target_member (discord.Member): Member/User to target.
+
+    Returns:
+        bool: Returns True if the user has the Administrator role.
+    """
+    if discord.utils.get(target_member.roles, name="Administrator"):
+        return True
+    return False
+
+def log(msg: str) -> None:
+    print(msg)
+    logging.info(msg)
+
+log("Starting the P2MM bot...")
+
+log("Grabbing config.json information...")
 
 # Get config.json
 if not os.path.exists("config.json"):
-    print("ERROR: config.json contains info the Discord bot needs to start!")
-    print("ERROR: Shuting down...")
-    logging.error("ERROR: config.json contains info the Discord bot needs to start!")
-    logging.error("ERROR: Shuting down...")
+    print("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
+    logging.error("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
     exit("config.json not found!")
 
 with open("config.json", "r") as config:
     data = json.load(config)
     token = data["token"] # P2MM Bot Token
     debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
+    bot_test_channel_id = data["bot_test_channel_id"]
+    welcome_channel_id = data["welcome_channel_id"]
 
 class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
@@ -51,14 +66,11 @@ class P2MMBot(discord.Client):
 
     # Runs when the bot is being setup
     async def setup_hook(self):
-        print("Setting up bot hook...")
-        logging.info("Setting up bot hook...")
-        guilds = [guild async for guild in self.fetch_guilds(limit=1)]
-        print(guilds)
-        self.tree.copy_global_to(guild=discord.Object(id=839651379034193920))
+        log("Setting up bot hook...")
+        p2mm_guild = await discord.utils.get(self.fetch_guilds(), name="Portal 2: Multiplayer Mod")
+        self.tree.copy_global_to(guild=p2mm_guild)
         await self.tree.sync()
-        print("Finished setting up bot hook...")
-        logging.info("Finished setting up bot hook...")
+        log("Finished setting up bot hook...")
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -68,14 +80,11 @@ client = P2MMBot(command_prefix=debug_prefix, intents=intents)
 # Runs when the bot has finished setting up
 @client.event
 async def on_ready():
-    print("Almost ready...")
-    logging.info("Almost ready...")
+    log("Almost ready...")
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="Portal 2: Multiplayer Mod"))
     #await client.get_channel(bot_test_channel_id).send("I AM ALIVE!!!")
-    print(f"Logged on as {client.user}!")
-    print("----------------------------")
-    logging.info(f"Logged on as {client.user}!")
-    logging.info("----------------------------")
+    log(f"Logged on as {client.user}!")
+    log("----------------------------")
 
 # Simply responds with hello back to the user who issued the command
 @client.tree.command(description="Says hello back")
@@ -95,6 +104,11 @@ async def date_joined(interaction: discord.Interaction, member: Optional[discord
     # The format_dt function formats the date time into a human readable representation in the official client
     await interaction.response.send_message(f"{member} joined {discord.utils.format_dt(member.joined_at)}")
 
+@client.tree.context_menu(name="Show Join Date")
+async def show_join_date(interaction: discord.Interaction, member: discord.Member):
+    # The format_dt function formats the date time into a human readable representation in the official client
+    await interaction.response.send_message(f"{member} joined at {discord.utils.format_dt(member.joined_at)}", ephemeral=True)
+
 @client.tree.command(description="Turns off the P2MM bot")
 async def shutdown(interaction: discord.Interaction):
     """Shutsdown the P2MM bot"""
@@ -105,8 +119,7 @@ async def shutdown(interaction: discord.Interaction):
         return
 
     await interaction.response.send_message("Shutting down, good bye!")
-    print("The P2MM Bot Has been shutdown...")
-    logging.info("The P2MM Bot Has been shutdown...")
+    log("The P2MM Bot Has been shutdown...")
     await asyncio.sleep(1)
     await client.close()
 
@@ -134,7 +147,56 @@ async def dm_test(interaction: discord.Interaction, member: Optional[discord.Mem
     await member.send("Hello from the P2MM Bot!")
     await interaction.response.send_message(f"Sent DM message to {member}")
 
-# Called on whenever someone sends a message
+@client.tree.command(description="Grab the specified users last 50 messages or how many there are if less than 50 are present.")
+@app_commands.describe(
+    channel="The specified channel to grab messages from; this needs to be specified.",
+    member="The specified user to get the last 50 messages; defaults to the user who uses the command."
+)
+async def message_history_test(interaction: discord.Interaction, channel: str, member: Optional[discord.Member] = None):
+    """Get specified users last 50 messages, if there is less it will return how many there actually are.
+
+    Parameters
+    ----------
+        channel str: 
+            "The specified channel to grab messages from; this needs to be specified."
+        member (Optional[discord.Member], optional): 
+            "The specified user to get the last 50 messages; defaults to the user who uses the command."
+    """
+
+    # Check if user has the administrator role
+    if not check_admin(interaction.user):
+        await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
+        return
+
+    # If no member is explicitly provided then we use the command user here
+    member = member or interaction.user
+    
+    # Check to make sure the specified channel is valid/exists
+    target_channel = discord.utils.get(client.get_all_channels(), name=channel)
+    if target_channel == None:
+        await interaction.response.send_message(f"Failed to grab the messages of \"{member}\" in the specified channel \"{channel}\" as it doesn't exist.")
+        return  
+    target_channel = target_channel.id
+    
+    # Count up the number of messages the author sent
+    message_count = 0
+    async for message in client.get_channel(target_channel).history(limit=50):
+        if message.author == member:
+            print(message.content)
+            message_count += 1
+    
+    # If there are 0 messages in the channel it will report as so
+    if message_count == 0:
+        await interaction.response.send_message(f"No messages of user \"{member}\" were found in \"{channel}\"")
+        return
+    
+    await interaction.response.send_message(f"Grabbed last {message_count} messages of \"{member}\" in \"{channel}\", check console for history.")
+
+# # All other Errors not returned come here. And we can just print the default TraceBack.
+# print('Ignoring exception in command {}:'.format(ctx.command))
+# traceback.print_exception(type(error), error, error.__traceback__)
+
+# Called whenever someone sends a message
 @client.event
 async def on_message(message):
     if (message.author.id == client.user.id) or (not message.content.startswith(debug_prefix)):
@@ -142,9 +204,7 @@ async def on_message(message):
     
     if "hello" in message.content:
          await message.reply("Hello!", mention_author=True)
-    
-    print(f"Message from id {message.author.id} author name {message.author}: {message.content}")
-    logging.info(f"Message from id {message.author.id} author name {message.author}: {message.content}")
+    log(f"Message from id {message.author.id} author name {message.author}: {message.content}")
 
 # Runs when someone joins the server
 # @client.event
@@ -156,18 +216,5 @@ async def on_message(message):
 # @client.event
 # async def on_guild_join(self, guild:discord.Guild):
 #     client.get_channel(discord.utils.get(predicate, iterable))
-
-def check_admin(target_member: discord.Member) -> bool:
-    """Check if the specified user has the Administrator role.
-
-    Args:
-        target_member (discord.Member): Member/User to target.
-
-    Returns:
-        bool: Returns True if the user has the Administrator role.
-    """
-    if discord.utils.get(target_member.roles, name="Administrator"):
-        return True
-    return False
 
 client.run(token, log_handler=None)
