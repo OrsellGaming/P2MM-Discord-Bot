@@ -151,7 +151,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Ignoring of Discord Bot Logs adn config.json
+# Ignoring of Discord Bot Logs and config.json
 # The config.json is ignored because it contains the token which is sensitive info
 config.json
 Logs

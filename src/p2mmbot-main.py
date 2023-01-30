@@ -15,7 +15,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 handler = logging.handlers.RotatingFileHandler(
-    filename="Logs/p2mmbot.log", # Log location
+    filename="src/Logs/p2mmbot.log", # Log location
     encoding="utf-8", # Log encoding
     mode="w", # Make sure when ever the bot starts it starts fresh with logs
     maxBytes=32 * 1024 * 1024,  # 32 MiB will be the max size for log files
@@ -24,19 +24,6 @@ handler = logging.handlers.RotatingFileHandler(
 formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-def check_admin(target_member: discord.Member) -> bool:
-    """Check if the specified user has the Administrator role.
-
-    Args:
-        target_member (discord.Member): Member/User to target.
-
-    Returns:
-        bool: Returns True if the user has the Administrator role.
-    """
-    if discord.utils.get(target_member.roles, name="Administrator"):
-        return True
-    return False
 
 def log(msg: str) -> None:
     print(msg)
@@ -58,6 +45,7 @@ with open("config.json", "r") as config:
     debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
     bot_test_channel_id = data["bot_test_channel_id"]
     welcome_channel_id = data["welcome_channel_id"]
+    mod_help_channel_id = data["mod_help_channel_id"]
 
 class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
@@ -76,6 +64,39 @@ intents = discord.Intents.default()
 intents.guilds = True
 intents.message_content = True
 client = P2MMBot(command_prefix=debug_prefix, intents=intents)
+
+def check_admin(target_member: discord.Member) -> bool:
+    """Check if the specified user has the Administrator role.
+
+    Args:
+        target_member (discord.Member): Member/User to target.
+
+    Returns:
+        bool: Returns True if the user has the Administrator role.
+    """
+    if discord.utils.get(target_member.roles, name="Administrator"):
+        return True
+    return False
+
+async def message_history_count(target_channel_id: int, target_member_id: int, limit: int = None, output: bool = False) -> int:
+    """Get the total message count of a member.
+
+    Args:
+        target_channel_id (int): Target channel id.
+        target_member_id (int): Target member id.
+        limit (int): The limit of how many messages you want to grab. Defaults to None which is all messages.
+        output (bool, optional): Output message contents to the console and log. Defaults to False.
+
+    Returns:
+        int: Total number of users message in that channel.
+    """
+    message_count = 0
+    async for message in client.get_channel(target_channel).history(limit=limit):
+        if message.author.id == target_member_id:
+            if output:
+                log(message.content)
+            message_count += 1
+    return message_count
 
 # Runs when the bot has finished setting up
 @client.event
@@ -179,11 +200,7 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
     target_channel = target_channel.id
     
     # Count up the number of messages the author sent
-    message_count = 0
-    async for message in client.get_channel(target_channel).history(limit=50):
-        if message.author == member:
-            print(message.content)
-            message_count += 1
+    message_count = message_history_count(target_channel_id, target_member_id, 50, True)
     
     # If there are 0 messages in the channel it will report as so
     if message_count == 0:
@@ -198,7 +215,13 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
 
 # Called whenever someone sends a message
 @client.event
-async def on_message(message):
+async def on_message(message: discord.Message):
+    if (message.channel.id == mod_help_channel_id) and (message async for message in client.get_channel(mod_help_channel_id).history()):
+        message_count = 0
+        async for message in message.channel.history(limit=50):
+            if message.author == member:
+                print(message.content)
+                message_count += 1
     if (message.author.id == client.user.id) or (not message.content.startswith(debug_prefix)):
          return
     
