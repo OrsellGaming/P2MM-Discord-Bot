@@ -36,16 +36,23 @@ log("Grabbing config.json information...")
 
 # Get config.json
 if not os.path.exists("src/config.json"):
-    log("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
+    print("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
+    logging.error("config.json contains info the Discord bot needs to start! Shutting down...")
     exit(1)
 
-with open("src/config.json", "r") as config:
-    data = json.load(config)
-    token = data["token"] # P2MM Bot Token
-    debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
-    bot_test_channel_id = int(data["bot_test_channel_id"])
-    welcome_channel_id = int(data["welcome_channel_id"])
-    mod_help_channel_id = int(data["mod_help_channel_id"])
+try:
+    with open("src/config.json", "r") as config: 
+        data = json.load(config)   
+        token = data["token"] # P2MM Bot Token
+        debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
+        bot_test_channel_id = int(data["bot_test_channel_id"])
+        mod_help_channel_id = int(data["mod_help_channel_id"])
+except KeyError:
+    print("WARNING: bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all ids to None...")
+    logging.warning("bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all offical ids to None...")
+    bot_test_channel_id = None
+    welcome_channel_id = None
+    mod_help_channel_id = None
 
 class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
@@ -63,7 +70,7 @@ class P2MMBot(discord.Client):
 intents = discord.Intents.default()
 intents.guilds = True
 intents.message_content = True
-client = P2MMBot(command_prefix=debug_prefix, intents=intents)
+client = P2MMBot(intents=intents, command_prefix=debug_prefix)
 
 def check_admin(target_member: discord.Member) -> bool:
     """Check if the specified user has the Administrator role.
