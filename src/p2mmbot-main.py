@@ -51,7 +51,6 @@ except KeyError:
     print("WARNING: bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all ids to None...")
     logging.warning("bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all offical ids to None...")
     bot_test_channel_id = None
-    welcome_channel_id = None
     mod_help_channel_id = None
 
 class P2MMBot(discord.Client):
