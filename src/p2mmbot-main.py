@@ -9,14 +9,14 @@ import asyncio
 import os
 import traceback
 
-if not os.path.exists("src/Logs"):
-    os.mkdir("src/Logs")
+if not os.path.exists("Logs"):
+    os.mkdir("Logs")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 handler = logging.handlers.RotatingFileHandler(
-    filename="src/Logs/p2mmbot.log", # Log location
+    filename="Logs/p2mmbot.log", # Log location
     encoding="utf-8", # Log encoding
     mode="w", # Make sure when ever the bot starts it starts fresh with logs
     maxBytes=32 * 1024 * 1024,  # 32 MiB will be the max size for log files
@@ -35,13 +35,13 @@ log("Starting the P2MM bot...")
 log("Grabbing config.json information...")
 
 # Get config.json
-if not os.path.exists("src/config.json"):
+if not os.path.exists("config.json"):
     print("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
     logging.error("config.json contains info the Discord bot needs to start! Shutting down...")
     exit(1)
 
 try:
-    with open("src/config.json", "r") as config: 
+    with open("config.json", "r") as config: 
         data = json.load(config)   
         token = data["token"] # P2MM Bot Token
         debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
