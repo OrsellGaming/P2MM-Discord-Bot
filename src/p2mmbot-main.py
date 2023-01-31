@@ -7,9 +7,10 @@ import logging
 from logging import handlers
 import asyncio
 import os
+import traceback
 
-if not os.path.exists("Logs"):
-    os.mkdir("Logs")
+if not os.path.exists("src/Logs"):
+    os.mkdir("src/Logs")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -34,18 +35,17 @@ log("Starting the P2MM bot...")
 log("Grabbing config.json information...")
 
 # Get config.json
-if not os.path.exists("config.json"):
-    print("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
-    logging.error("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
-    exit("config.json not found!")
+if not os.path.exists("src/config.json"):
+    log("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
+    exit(1)
 
-with open("config.json", "r") as config:
+with open("src/config.json", "r") as config:
     data = json.load(config)
     token = data["token"] # P2MM Bot Token
     debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
-    bot_test_channel_id = data["bot_test_channel_id"]
-    welcome_channel_id = data["welcome_channel_id"]
-    mod_help_channel_id = data["mod_help_channel_id"]
+    bot_test_channel_id = int(data["bot_test_channel_id"])
+    welcome_channel_id = int(data["welcome_channel_id"])
+    mod_help_channel_id = int(data["mod_help_channel_id"])
 
 class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
@@ -91,7 +91,7 @@ async def message_history_count(target_channel_id: int, target_member_id: int, l
         int: Total number of users message in that channel.
     """
     message_count = 0
-    async for message in client.get_channel(target_channel).history(limit=limit):
+    async for message in client.get_channel(target_channel_id).history(limit=limit):
         if message.author.id == target_member_id:
             if output:
                 log(message.content)
@@ -197,10 +197,9 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
     if target_channel == None:
         await interaction.response.send_message(f"Failed to grab the messages of \"{member}\" in the specified channel \"{channel}\" as it doesn't exist.")
         return  
-    target_channel = target_channel.id
     
     # Count up the number of messages the author sent
-    message_count = message_history_count(target_channel_id, target_member_id, 50, True)
+    message_count = await message_history_count(target_channel.id, member.id, 50, True)
     
     # If there are 0 messages in the channel it will report as so
     if message_count == 0:
@@ -209,35 +208,36 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
     
     await interaction.response.send_message(f"Grabbed last {message_count} messages of \"{member}\" in \"{channel}\", check console for history.")
 
-# # All other Errors not returned come here. And we can just print the default TraceBack.
-# print('Ignoring exception in command {}:'.format(ctx.command))
-# traceback.print_exception(type(error), error, error.__traceback__)
-
 # Called whenever someone sends a message
 @client.event
 async def on_message(message: discord.Message):
-    if (message.channel.id == mod_help_channel_id) and (message async for message in client.get_channel(mod_help_channel_id).history()):
-        message_count = 0
-        async for message in message.channel.history(limit=50):
-            if message.author == member:
-                print(message.content)
-                message_count += 1
-    if (message.author.id == client.user.id) or (not message.content.startswith(debug_prefix)):
-         return
+    if (message.author.id == client.user.id):
+        return
+    
+    #log(f"Message from id {message.author.id}, author name {message.author}, in channel {message.channel}, with id {message.channel.id}: {message.content}")
+    if (message.channel.id == mod_help_channel_id) and (await message_history_count(mod_help_channel_id, message.author.id, output=None) == 1):
+        await message.reply(
+            "Hey there! It appears it's your first time messaging in <#839751998445846568>!\nMake sure to check out the <#1027963220851429387>, your answer might be there!\nMessage will delete in 15 seconds...", 
+            mention_author=True, 
+            delete_after=15
+        )
+        return
+    
+    if not message.content.startswith(debug_prefix):
+        return
     
     if "hello" in message.content:
-         await message.reply("Hello!", mention_author=True)
-    log(f"Message from id {message.author.id} author name {message.author}: {message.content}")
-
-# Runs when someone joins the server
-# @client.event
-# async def on_member_join(member: discord.Member):
-#     """Says when a member joined."""
-#     await client.get_channel(welcome_channel_id).send(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
-#     logging.info(f"{member.name} joined {discord.utils.format_dt(member.joined_at)}")
+        await message.reply("Hello!", mention_author=True)
 
 # @client.event
 # async def on_guild_join(self, guild:discord.Guild):
 #     client.get_channel(discord.utils.get(predicate, iterable))
 
-client.run(token, log_handler=None)
+@client.event
+async def on_error(event:str, *args, **kwargs):
+    log(f"An non-fatal error occured! With event: {event}")
+    log(traceback.format_exc())
+    await client.get_channel(1062430492558888980).send("<@217027527602995200> ERROR: An error occured with the bot! Check the console!")
+
+# START THE BOT!!!
+client.run(token, log_handler=None, root_logger=True)
