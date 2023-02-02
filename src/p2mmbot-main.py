@@ -36,20 +36,30 @@ log("Grabbing config.json information...")
 
 # Get config.json
 if not os.path.exists("config.json"):
-    print("ERROR: config.json contains info the Discord bot needs to start! Shutting down...")
-    logging.error("config.json contains info the Discord bot needs to start! Shutting down...")
+    print("ERROR: config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
+    logging.error("config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
     exit(1)
 
 try:
-    with open("config.json", "r") as config: 
-        data = json.load(config)   
-        token = data["token"] # P2MM Bot Token
-        debug_prefix = data["debug_prefix"] # P2MM Bot Debug Command Prefix, Default "!"
-        bot_test_channel_id = int(data["bot_test_channel_id"])
-        mod_help_channel_id = int(data["mod_help_channel_id"])
-except KeyError:
-    print("WARNING: bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all ids to None...")
-    logging.warning("bot_test_channel_id not found! Assuming this is not the offical P2MM Bot being run!\nSetting all offical ids to None...")
+    with open("config.json", "r") as config:
+        cfg = json.load(config)
+
+        # Check if the user wants to use a test bot id
+        if (not cfg.get("testing") is None) and (cfg["testing"]):
+            token = cfg["token_testing"] # Test Bot Token
+            testing_guild_id = int(cfg["testing_guild_id"]) # Testing guild id
+            log(f'"testing" is set to True, will use test bot token {testing_guild_id}...')
+        else:
+            token = cfg["token"] # Bot Token
+        debug_prefix = cfg["debug_prefix"] # Bot Debug Command Prefix, Default "!"
+
+        # P2MM Discord Server specific channel ids
+        bot_test_channel_id = int(cfg["bot_test_channel_id"])
+        mod_help_channel_id = int(cfg["mod_help_channel_id"])
+except KeyError as key:
+    # Should only except is the P2MM Discord Server ids error, this is assuming that this bot is not the offical P2MM Bot
+    print(f"WARNING: {key} not found! Assuming this is not the offical P2MM Bot being run! Setting all offical ids to None...")
+    logging.warning(f"{key} not found! Assuming this is not the offical P2MM Bot being run! Setting all offical ids to None...")
     bot_test_channel_id = None
     mod_help_channel_id = None
 
@@ -61,10 +71,22 @@ class P2MMBot(discord.Client):
     # Runs when the bot is being setup
     async def setup_hook(self):
         log("Setting up bot hook...")
-        p2mm_guild = await discord.utils.get(self.fetch_guilds(), name="Portal 2: Multiplayer Mod")
-        self.tree.copy_global_to(guild=p2mm_guild)
-        await self.tree.sync()
+        if cfg["testing"]:
+            self.tree.copy_global_to(guild=discord.Object(id=testing_guild_id))
+            log(f'Copied slash command to test guild "{await discord.utils.get(self.fetch_guilds(), id=testing_guild_id)}"...')
+        else:
+            log("Syncing slash commands to all guilds...")
+            await self.tree.sync()
         log("Finished setting up bot hook...")
+    
+    # Runs when the bot has finished setting up
+    async def on_ready(self):
+        log("Almost ready...")
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="Portal 2: Multiplayer Mod"))
+        #await client.get_channel(bot_test_channel_id).send("I AM ALIVE!!!")
+        log(f'Logged on as {self.user}!')
+        log("----------------------------")
+
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -103,15 +125,6 @@ async def message_history_count(target_channel_id: int, target_member_id: int, l
                 log(message.content)
             message_count += 1
     return message_count
-
-# Runs when the bot has finished setting up
-@client.event
-async def on_ready():
-    log("Almost ready...")
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="Portal 2: Multiplayer Mod"))
-    #await client.get_channel(bot_test_channel_id).send("I AM ALIVE!!!")
-    log(f"Logged on as {client.user}!")
-    log("----------------------------")
 
 # Simply responds with hello back to the user who issued the command
 @client.tree.command(description="Says hello back")
