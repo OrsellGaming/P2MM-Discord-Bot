@@ -204,11 +204,11 @@ async def hello(interaction: discord.Interaction):
     log("Hello command executed...")
     await interaction.response.send_message(f'Hi, {interaction.user.mention}')
 
-# Reponds back with when a member joinned the server
-@client.tree.command(description="Get when a user joinned the server")
+# Reponds back with when a member joined the server
+@client.tree.command(description="Get when a user joined the server")
 @app_commands.describe(member="The user you want to get the joined date from; defaults to the user who uses the command")
 async def date_joined(interaction: discord.Interaction, member: Optional[discord.Member] = None):
-    """Get when a user joinned the server"""
+    """Get when a user joined the server, but its a slash command."""
 
     # If no member is explicitly provided then we use the command user here
     member = member or interaction.user
@@ -220,6 +220,7 @@ async def date_joined(interaction: discord.Interaction, member: Optional[discord
 
 @client.tree.context_menu(name="Show Join Date")
 async def show_join_date(interaction: discord.Interaction, member: discord.Member):
+    """Get when a user joined the server, but it's a context menu."""
 
     # The format_dt function formats the date time into a human readable representation in the official client
     log("Join data grabbed via context menu:")
