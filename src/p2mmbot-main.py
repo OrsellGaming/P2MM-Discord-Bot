@@ -2,41 +2,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import json
-import logging
-from logging import handlers
-import asyncio
 import os
+import asyncio
 import traceback
-from typing import Optional
-from datetime import datetime
-from collections import Counter
+from typing import Optional, List
 
-basepath = os.getcwd()
-if "src" not in basepath:
-    basepath = basepath + os.sep + "src" + os.sep
+import Scripts.Logging as logging
 
-if not os.path.exists(basepath + "Logs"):
-    os.mkdir(basepath + "Logs")
+base_path = os.getcwd()
+if "src" not in base_path:
+    base_path = base_path + os.sep + "src" + os.sep
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-handler = logging.handlers.RotatingFileHandler(
-    filename=basepath + "Logs/p2mmbot.log", # Log location
-    encoding="utf-8", # Log encoding
-    mode="w", # Make sure when ever the bot starts it starts fresh with logs
-    maxBytes=32 * 1024 * 1024,  # 32 MiB will be the max size for log files
-    backupCount=5,  # Rotate through 5 files
-)
-formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# A log function to both log to the log and print to the console
-def log(msg: str) -> None:
-    now = datetime.now()
-    print(f'[{now.strftime("%d/%m/%Y %H:%M:%S")}] {msg}')
-    logging.info(msg)
+logging.setup_logging(base_path)
+log = logging.log
 
 # List of test commands that will only be avaliable when
 # testing mode is enabled
@@ -51,13 +29,13 @@ log("Starting the P2MM bot...")
 log("Grabbing config.json information...")
 
 # Get config.json
-if not os.path.exists(basepath + "config.json"):
+if not os.path.exists(base_path + "config.json"):
     print("ERROR: config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
     logging.error("config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
     exit(1)
 
 try:
-    with open(basepath + "config.json", "r") as config:
+    with open(base_path + "config.json", "r") as config:
         cfg = json.load(config)
 
         # Check if the user wants to use a test bot id
@@ -172,7 +150,7 @@ def check_admin(target_member: discord.Member) -> bool:
     Returns:
         bool: Returns True if the user is Orsell.
     """
-    if target_member.id == 217027527602995200:
+    if (target_member.id == 217027527602995200) and not cfg["testing"]:
         return True
     return False
 
