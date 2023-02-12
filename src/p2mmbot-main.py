@@ -72,6 +72,7 @@ try:
         # P2MM Discord Server specific channel ids
         bot_test_channel_id = int(cfg["bot_test_channel_id"])
         mod_help_channel_id = int(cfg["mod_help_channel_id"])
+        config.close()
 except KeyError as key:
     # Should only except is the P2MM Discord Server ids error, this is assuming that this bot is not the offical P2MM Bot
     print(f"WARNING: {key} not found! Assuming that the offical config.json isn't being used! Setting all offical ids to None...")
@@ -188,10 +189,12 @@ async def message_history_count(target_channel_id: int, target_member_id: int, l
         int: Total number of users message in that channel.
     """
     log("MESSAGE HISTORY COUNT:")
-    log(f'Checking message count in channel {client.get_channel(target_channel_id)}')
-    log(f'Target user {client.get_user(target_member_id)}')
-    log(f'With limit {limit} and will print out in both console and log {output}')
-    
+    log(f'Checking message count in channel: {client.get_channel(target_channel_id)}')
+    log(f'Target user id: {target_member_id}')
+    log(f'With limit: {limit}')
+    log(f'Will print out in both console and log: {output}')
+    log("\n")
+
     message_count = 0
     async for message in client.get_channel(target_channel_id).history(limit=limit):
         if message.author.id == target_member_id:
@@ -205,7 +208,7 @@ async def message_history_count(target_channel_id: int, target_member_id: int, l
 async def hello(interaction: discord.Interaction):
     """Says hello!"""
 
-    log("Hello command executed...")
+    log("Hello slash command executed...")
     await interaction.response.send_message(f'Hi, {interaction.user.mention}')
 
 # Reponds back with when a member joined the server
@@ -277,7 +280,7 @@ async def dm_test(interaction: discord.Interaction, member: Optional[discord.Mem
 
 @client.tree.command(description="Grab the specified users last 50 messages or how many there are if less than 50 are present.")
 @app_commands.describe(
-    channel="The specified channel to grab messages from; this needs to be specified.",
+    channel="The specified channel to grab messages from; make sure the # is at the front! Required!",
     member="The specified user to get the last 50 messages; defaults to the user who uses the command."
 )
 async def message_history_test(interaction: discord.Interaction, channel: str, member: Optional[discord.Member] = None):
@@ -296,29 +299,38 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
 
+    # If the channel itself is specified and not the name
+    if not "#" in "channel":
+        log(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
+        await interaction.response.send_message(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
+        return
+
+    # We need to remove the additional symbols that come with it
+    original_channel = channel
+    channel = int(channel.replace("<", "").replace("#", "").replace(">", ""))
+
     # If no member is explicitly provided then we use the command user here
     member = member or interaction.user
     
     log(f'Grabbing messages of user: {member}')
 
     # Check to make sure the specified channel is valid/exists
-    target_channel = discord.utils.get(client.get_all_channels(), name=channel)
-    if target_channel == None:
-        log(f'Failed to grab the messages of "{member}" in the specified channel "{channel}" as it doesn\'t exist.')
-        await interaction.response.send_message(f'Failed to grab the messages of "{member}" in the specified channel "{channel}" as it doesn\'t exist.')
+    if client.get_channel(channel) == None:
+        log(f'Failed to grab the messages of "{member}" in the specified channel {original_channel} as it doesn\'t exist.')
+        await interaction.response.send_message(f'Failed to grab the messages of "{member}" in the specified channel {original_channel} as it doesn\'t exist.')
         return  
     
     # Count up the number of messages the author sent
-    message_count = await message_history_count(target_channel.id, member.id, 50, True)
+    message_count = await message_history_count(channel, member.id, 50, True)
     
     # If there are 0 messages in the channel it will report as so
     if message_count == 0:
-        log(f'No messages of user "{member}" were found in "{channel}"')
-        await interaction.response.send_message(f'No messages of user "{member}" were found in "{channel}"')
+        log(f'No messages of user "{member}" were found in "{original_channel}"')
+        await interaction.response.send_message(f'No messages of user "{member}" were found in "{original_channel}"')
         return
     
-    log(f'Grabbed last {message_count} messages of "{member}" in "{channel}", check console for history.')
-    await interaction.response.send_message(f'Grabbed last {message_count} messages of "{member}" in "{channel}", check console for history.')
+    log(f'Grabbed last {message_count} messages of "{member}" in {original_channel}, check console for history.')
+    await interaction.response.send_message(f'Grabbed last {message_count} messages of "{member}" in {original_channel}, check console for history.')
 
 @client.tree.command(description="Test the Test Modal")
 async def test_modal(interaction: discord.Interaction):
@@ -349,12 +361,8 @@ async def on_message(message: discord.Message, interaction: discord.Interaction)
         return
     
     if "hello" in message.content:
-        log("Hello command executed...")
+        log("Hello prefix command executed...")
         await message.reply("Hello!", mention_author=True)
-
-# @client.event
-# async def on_guild_join(self, guild:discord.Guild):
-#     client.get_channel(discord.utils.get(predicate, iterable))
 
 @client.event
 async def on_error(self, interaction: discord.Interaction, error: Exception, event:str):
