@@ -345,15 +345,15 @@ async def test_modal(interaction: discord.Interaction):
 
 # Called whenever someone sends a message
 @client.event
-async def on_message(message: discord.Message, interaction: discord.Interaction):
+async def on_message(message: discord.Message):
     if (message.author.id == client.user.id):
         return
     
     #log(f'Message from id {message.author.id}, author name {message.author}, in channel {message.channel}, with id {message.channel.id}: {message.content}")
     if (message.channel.id == mod_help_channel_id) and (await message_history_count(mod_help_channel_id, message.author.id, output=None) == 1) and (not message.author.bot):
         log(f'New comer in #mod-help! User: {message.author} ID: {message.author.id}')
-        await interaction.response.send_message(
-            "Hey there! It appears it's your first time messaging in <#839751998445846568>!\nMake sure to check out the <#1027963220851429387>, your answer might be there!", 
+        await discord.Interaction.response.send_message(
+            "Hey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!", 
             ephemeral=True)
         return
     
@@ -365,10 +365,17 @@ async def on_message(message: discord.Message, interaction: discord.Interaction)
         await message.reply("Hello!", mention_author=True)
 
 @client.event
-async def on_error(self, interaction: discord.Interaction, error: Exception, event:str):
-    log(f'An non-fatal error occured! With event: {event}')
+async def on_error(self, event: str, error: Exception):
+    log(f'ERROR: An non-fatal error occured! With event: {event}')
     log(traceback.print_exception(type(error), error, error.__traceback__))
+    logging.error(f'An non-fatal error occured! With event: {event}')
+    logging.error(traceback.print_exception(type(error), error, error.__traceback__))
     await client.get_channel(1062430492558888980).send("<@217027527602995200> ERROR: An error occured with the bot! Check the console!")
 
 # START THE BOT!!!
-client.run(token, log_handler=None, root_logger=True)
+try:
+    client.run(token, log_handler=None, root_logger=True)
+except KeyboardInterrupt:
+    log("The P2MM Bot Has been shutdown...")
+    asyncio.sleep(1)
+    client.close()
