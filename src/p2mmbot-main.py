@@ -1,4 +1,3 @@
-from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -8,7 +7,9 @@ from logging import handlers
 import asyncio
 import os
 import traceback
+from typing import Optional
 from datetime import datetime
+from collections import Counter
 
 basepath = os.getcwd()
 if "src" not in basepath:
@@ -31,12 +32,15 @@ formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", 
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+# A log function to both log to the log and print to the console
 def log(msg: str) -> None:
     now = datetime.now()
     print(f'[{now.strftime("%d/%m/%Y %H:%M:%S")}] {msg}')
     logging.info(msg)
 
-testcommands = [
+# List of test commands that will only be avaliable when
+# testing mode is enabled
+test_commands = [
     "dm_test",
     "message_history_test",
     "test_modal"
@@ -70,8 +74,8 @@ try:
         mod_help_channel_id = int(cfg["mod_help_channel_id"])
 except KeyError as key:
     # Should only except is the P2MM Discord Server ids error, this is assuming that this bot is not the offical P2MM Bot
-    print(f"WARNING: {key} not found! Assuming this is not the offical P2MM Bot being run! Setting all offical ids to None...")
-    logging.warning(f"{key} not found! Assuming this is not the offical P2MM Bot being run! Setting all offical ids to None...")
+    print(f"WARNING: {key} not found! Assuming that the offical config.json isn't being used! Setting all offical ids to None...")
+    logging.warning(f"{key} not found! Assuming that the offical config.json isn't being used! Setting all offical ids to None...")
     bot_test_channel_id = None
     mod_help_channel_id = None
 
@@ -79,29 +83,31 @@ class P2MMBot(discord.Client):
     def __init__(self, *, intents: discord.Intents, command_prefix):
         super().__init__(intents=intents, command_prefix=debug_prefix)
         self.tree = app_commands.CommandTree(self)
+        self.test_guild = None
 
     # Runs when the bot is being setup
     async def setup_hook(self):
         log("Setting up bot hook...")
-        if not cfg["testing"]:
+        if cfg["testing"]:
             # Copy all commands to test guild, including test commands
-            
-            try:
-                for testcommand in testcommands:
-                    self.tree.add_command(globals()[testcommand])
-                    log(f'Added test command: {testcommand}')
-            except discord.app_commands.errors.CommandAlreadyRegistered:
-                pass
+            test_command_classes = [globals()[test_command] for test_command in test_commands]
+            for test_command_class in test_command_classes:
+                try:
+                    self.tree.add_command(test_command_class)
+                    log(f'Added test command: {test_command_class.__name__}')
+                except discord.app_commands.errors.CommandAlreadyRegistered:
+                    pass
             
             self.tree.copy_global_to(guild=discord.Object(id=testing_guild_id))
-            log(f'Copied all slash commands to test guild "{await discord.utils.get(self.fetch_guilds(), id=testing_guild_id)}"...')
+            self.test_guild = discord.utils.get(self.fetch_guilds(), id=testing_guild_id)
+            log(f'Copied all test commands to test guild "{await discord.utils.get(self.fetch_guilds(), id=testing_guild_id)}"...')
         else:
             # Remove test commands so there are not used by the general public
-            for testcommand in testcommands:
-                self.tree.remove_command(testcommand)
-                log(f'Removed test command: {testcommand}')
+            for test_command_class in test_command_classes:
+                self.tree.remove_command(test_command_class.__name__)
+                log(f'Removed test command: {test_command_class.__name__}')
                 
-        log("Syncing slash commands to all guilds...")
+        log("Syncing slash commands, context menus, and modals to all guilds...")
         for command in await self.tree.sync():
             log(f'Command "{command}" was synced...')
         
@@ -110,8 +116,7 @@ class P2MMBot(discord.Client):
     # Runs when the bot has finished setting up
     async def on_ready(self):
         log("Almost ready...")
-        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="Portal 2: Multiplayer Mod"))
-        #await client.get_channel(bot_test_channel_id).send("I AM ALIVE!!!")
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="Portal 2: Multiplayer Mod"))
         log(f'Logged on as {self.user}!')
         log("----------------------------")
 
@@ -119,39 +124,38 @@ class Test_Modal(discord.ui.Modal, title='Test Modal'):
     # Our modal classes MUST subclass `discord.ui.Modal`,
     # but the title can be whatever you want.
 
-    # This will be a short input, where the user can enter their name
-    # It will also have a placeholder, as denoted by the `placeholder` kwarg.
-    # By default, it is required and is a short-style input which is exactly
-    # what we want.
+    # This is a short style input, where the user can enter their name.
+    # It will also have a placeholder, as denoted by `placeholder`.
+    # By default, it is required and is a short-style input.
     name = discord.ui.TextInput(
-        label='Name',
-        placeholder='Type your name here... ',
+        label='Name', # The title/label of the input box
+        placeholder='Type your name here... ', # Text that is displayed faded in the text input when there is no text
     )
 
-    # This is a longer, paragraph style input, where user can submit feedback
-    # Unlike the name, it is not required. If filled out, however, it will
-    # only accept a maximum of 300 characters, as denoted by the
-    # `max_length=300` kwarg.
+    # This is a longer, paragraph style input, where user can submit feedback.
+    # Unlike name, it is not required. If filled out, however, it will
+    # only accept a maximum of 300 characters.
     feedback = discord.ui.TextInput(
         label='This is the text for a textinput',
-        style=discord.TextStyle.long,
+        style=discord.TextStyle.long, # The kind of input box used
         placeholder='Type your text here...',
-        required=False,
-        max_length=300,
+        required=False, # Choose if the user needs to type something into the prompt
+        max_length=300, # The maximum amount of characters that can be inputed
     )
 
+    # What should happen when the user clicks the submit button.
+    # We do nothing with the info provided besides reply back to the user the name they inputed.
     async def on_submit(self, interaction: discord.Interaction):
         log("Submitted info for the Test Modal...")
         await interaction.response.send_message(f'Thanks for your feedback, {self.name.value}!', ephemeral=True)
 
+    # What happens if a error occurs with the modal.
     async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
         log("ERROR: Something went wrong with the Test Modal...")
 
         # Make sure we know what the error actually is
         log(traceback.print_exception(type(error), error, error.__traceback__))
         await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)
-
-        
 
 intents = discord.Intents.default()
 intents.guilds = True
