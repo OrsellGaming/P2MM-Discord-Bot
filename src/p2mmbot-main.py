@@ -12,7 +12,7 @@ import Scripts.Logging as Logging
 
 base_path = os.getcwd()
 if "src" not in base_path:
-    base_path = base_path + os.sep + "src" + os.sep
+    base_path = base_path + os.sep + "src"
 
 Logging.setup_logging(base_path)
 log = Logging.log
@@ -30,13 +30,13 @@ log("Starting the P2MM bot...")
 log("Grabbing config.json information...")
 
 # Get config.json
-if not os.path.exists(base_path + "config.json"):
-    print("ERROR: config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
-    logging.error("config.json not found! config.json contains info the Discord bot needs to start! Shutting down...")
+if not os.path.exists(base_path + os.sep + "config.json"):
+    print(f'ERROR: config.json not found! config.json couldn\'t be found in "{base_path + os.sep + "config.json"}"! config.json contains info the Discord bot needs to start! Shutting down...')
+    logging.error(f'config.json not found! config.json couldn\'t be found in "{base_path + os.sep + "config.json"}"! config.json contains info the Discord bot needs to start! Shutting down...')
     exit(1)
 
 try:
-    with open(base_path + "config.json", "r") as config:
+    with open(base_path + os.sep + "config.json", "r") as config:
         cfg = json.load(config)
 
         # Check if the user wants to use a test bot id
