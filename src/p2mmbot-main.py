@@ -126,6 +126,10 @@ class Test_Modal(discord.ui.Modal, title='Test Modal'):
     # We do nothing with the info provided besides reply back to the user the name they inputed.
     async def on_submit(self, interaction: discord.Interaction):
         log("Submitted info for the Test Modal...")
+        log("Info submitted:")
+        log(f'Name: "{self.name.value}"')
+        log(f'Feedback: "{self.feedback.value}')
+        log(f'Command exectued by: "{interaction.user}"')
         await interaction.response.send_message(f'Thanks for your feedback, {self.name.value}!', ephemeral=True)
 
     # What happens if a error occurs with the modal.
@@ -281,7 +285,7 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
         return
 
     # If the channel itself is specified and not the name
-    if not "#" in "channel":
+    if not "#" in channel:
         log(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
         await interaction.response.send_message(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
         return
