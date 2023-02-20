@@ -23,6 +23,11 @@ def setup_logging(base_path: str) -> None:
 
 # A log function to both log to the log and print to the console
 def log(msg: str) -> None:
+    """Logs a message to both the console and the logger
+
+    Args:
+        msg (str): Message to be sent.
+    """
     now = datetime.now()
     print(f'[{now.strftime("%d/%m/%Y %H:%M:%S")}] {msg}')
     logging.info(msg)

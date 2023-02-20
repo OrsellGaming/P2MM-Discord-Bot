@@ -82,9 +82,9 @@ class P2MMBot(discord.Client):
             log(f'Copied all test commands to test guild "{await discord.utils.get(self.fetch_guilds(), id=testing_guild_id)}"...')
         else:
             # Remove test commands so there are not used by the general public
-            for test_command_class in test_command_classes:
-                self.tree.remove_command(test_command_class.__name__)
-                log(f'Removed test command: {test_command_class.__name__}')
+            for test_command in test_commands:
+                self.tree.remove_command(test_command)
+                log(f'Removed test command: {test_command}')
                 
         log("Syncing slash commands, context menus, and modals to all guilds...")
         for command in await self.tree.sync():
@@ -142,15 +142,18 @@ intents.message_content = True
 client = P2MMBot(intents=intents, command_prefix=debug_prefix)
 
 def check_admin(target_member: discord.Member) -> bool:
-    """Checks if Orsell is the one to execute the command.
+    """Checks if Orsell is the one to execute the command, or if testing mode is enabled.
 
     Args:
         target_member (discord.Member): Member/User to target.
 
     Returns:
-        bool: Returns True if the user is Orsell.
+        bool: Returns True if the user is Orsell or testing mode is enabled.
     """
-    if (target_member.id == 217027527602995200) and not cfg["testing"]:
+    if cfg["testing"]:
+        return True
+    
+    if (target_member.id == 217027527602995200):
         return True
     return False
 
@@ -214,9 +217,9 @@ async def show_join_date(interaction: discord.Interaction, member: discord.Membe
 
 @client.tree.command(description="Turns off the P2MM bot")
 async def shutdown(interaction: discord.Interaction):
-    """Shutsdown the P2MM bot"""
+    """Shutsdown the P2MM bot."""
 
-    # Check if user is Orsell
+    # Check if user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -239,7 +242,7 @@ async def ping(interaction: discord.Interaction):
 async def dm_test(interaction: discord.Interaction, member: Optional[discord.Member] = None):
     """Test DMing using the bot"""
 
-    # Check if user is Orsell
+    # Check if user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -272,7 +275,7 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
             "The specified user to get the last 50 messages; defaults to the user who uses the command."
     """
 
-    # Check if user is Orsell
+    # Check if user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -313,7 +316,7 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
 @client.tree.command(description="Test the Test Modal")
 async def test_modal(interaction: discord.Interaction):
 
-    # Check if user is Orsell
+    # Check if user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
