@@ -5,16 +5,17 @@ import json
 import os
 import asyncio
 import traceback
+import logging
 from typing import Optional, List
 
-import Scripts.Logging as logging
+import Scripts.Logging as Logging
 
 base_path = os.getcwd()
 if "src" not in base_path:
     base_path = base_path + os.sep + "src" + os.sep
 
-logging.setup_logging(base_path)
-log = logging.log
+Logging.setup_logging(base_path)
+log = Logging.log
 
 # List of test commands that will only be avaliable when
 # testing mode is enabled
