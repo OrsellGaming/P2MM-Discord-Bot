@@ -4,14 +4,14 @@ import os
 from datetime import datetime
 
 def setup_logging(base_path: str) -> None:
-    if not os.path.exists(base_path + "Logs"):
-        os.mkdir(base_path + "Logs")
+    if not os.path.exists(base_path + os.sep + "Logs"):
+        os.mkdir(base_path + os.sep + "Logs")
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
     handler = logging.handlers.RotatingFileHandler(
-        filename = base_path + "Logs/p2mmbot.log", # Log location
+        filename = base_path + os.sep + "Logs/p2mmbot.log", # Log location
         encoding = "utf-8", # Log encoding
         mode = "w", # Make sure when ever the bot starts it starts fresh with logs
         maxBytes = 32 * 1024 * 1024,  # 32 MiB will be the max size for log files
