@@ -17,12 +17,13 @@ if "src" not in base_path:
 Logging.setup_logging(base_path)
 log = Logging.log
 
-# List of test commands that will only be avaliable when
+# List of test commands that will only be available when
 # testing mode is enabled
 test_commands = [
     "dm_test",
     "message_history_test",
-    "test_modal"
+    "test_modal",
+    "mod_help_test"
 ]
 
 log("Starting the P2MM bot...")
@@ -53,9 +54,9 @@ try:
         mod_help_channel_id = int(cfg["mod_help_channel_id"])
         config.close()
 except KeyError as key:
-    # Should only except is the P2MM Discord Server ids error, this is assuming that this bot is not the offical P2MM Bot
-    print(f"WARNING: {key} not found! Assuming that the offical config.json isn't being used! Setting all offical ids to None...")
-    logging.warning(f"{key} not found! Assuming that the offical config.json isn't being used! Setting all offical ids to None...")
+    # Should only except is the P2MM Discord Server ids error, this is assuming that this bot is not the official P2MM Bot
+    print(f"WARNING: {key} not found! Assuming that the official config.json isn't being used! Setting all official ids to None...")
+    logging.warning(f"{key} not found! Assuming that the official config.json isn't being used! Setting all official ids to None...")
     bot_test_channel_id = None
     mod_help_channel_id = None
 
@@ -120,17 +121,17 @@ class Test_Modal(discord.ui.Modal, title='Test Modal'):
         style=discord.TextStyle.long, # The kind of input box used
         placeholder='Type your text here...',
         required=False, # Choose if the user needs to type something into the prompt
-        max_length=300, # The maximum amount of characters that can be inputed
+        max_length=300, # The maximum amount of characters that can be inputted
     )
 
     # What should happen when the user clicks the submit button.
-    # We do nothing with the info provided besides reply back to the user the name they inputed.
+    # We do nothing with the info provided besides reply back to the user the name they inputted.
     async def on_submit(self, interaction: discord.Interaction):
         log("Submitted info for the Test Modal...")
         log("Info submitted:")
         log(f'Name: "{self.name.value}"')
         log(f'Feedback: "{self.feedback.value}')
-        log(f'Command exectued by: "{interaction.user}"')
+        log(f'Command executed by: "{interaction.user}"')
         await interaction.response.send_message(f'Thanks for your feedback, {self.name.value}!', ephemeral=True)
 
     # What happens if a error occurs with the modal.
@@ -197,7 +198,7 @@ async def hello(interaction: discord.Interaction):
     log("Hello slash command executed...")
     await interaction.response.send_message(f'Hi, {interaction.user.mention}')
 
-# Reponds back with when a member joined the server
+# Responds back with when a member joined the server
 @client.tree.command(description="Get when a user joined the server")
 @app_commands.describe(member="The user you want to get the joined date from; defaults to the user who uses the command")
 async def date_joined(interaction: discord.Interaction, member: Optional[discord.Member] = None):
@@ -222,7 +223,7 @@ async def show_join_date(interaction: discord.Interaction, member: discord.Membe
 
 @client.tree.command(description="Turns off the P2MM bot")
 async def shutdown(interaction: discord.Interaction):
-    """Shutsdown the P2MM bot."""
+    """Shutdown the P2MM bot."""
 
     # Check if user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
@@ -263,6 +264,13 @@ async def dm_test(interaction: discord.Interaction, member: Optional[discord.Mem
     except discord.Forbidden:
         log(f"Failed to DM message to {member} as they have blocked the bot or have server DM's disabled.")
         await interaction.response.send_message(f"Failed to DM message to {member} as they have blocked the bot or have server DM's disabled.")
+
+@client.tree.command(description="Test the message that appears when someone first chats in #mod-help")
+async def mod_help_test(interaction: discord.Interaction):
+    log(f'User "{interaction.user}" ran the mod_help_test command')
+    await interaction.response.send_message(
+        "**#mod-help MESSAGE TEST:**\n\nHey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!", 
+        ephemeral=True)
 
 @client.tree.command(description="Grab the specified users last 50 messages or how many there are if less than 50 are present.")
 @app_commands.describe(
@@ -352,11 +360,11 @@ async def on_message(message: discord.Message):
 
 @client.event
 async def on_error(self, event: str, error: Exception):
-    log(f'ERROR: An non-fatal error occured! With event: {event}')
+    log(f'ERROR: An non-fatal error occurred! With event: {event}')
     log(traceback.print_exception(type(error), error, error.__traceback__))
-    logging.error(f'An non-fatal error occured! With event: {event}')
+    logging.error(f'An non-fatal error occurred! With event: {event}')
     logging.error(traceback.print_exception(type(error), error, error.__traceback__))
-    await client.get_channel(1062430492558888980).send("<@217027527602995200> ERROR: An error occured with the bot! Check the console!")
+    await client.get_channel(1062430492558888980).send("<@217027527602995200> ERROR: An error occurred with the bot! Check the console!")
 
 # START THE BOT!!!
 try:
