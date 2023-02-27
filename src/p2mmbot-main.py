@@ -156,6 +156,7 @@ def check_admin(target_member: discord.Member) -> bool:
     Returns:
         bool: Returns True if the user is Orsell or testing mode is enabled.
     """
+
     if cfg["testing"]:
         return True
     
@@ -163,7 +164,7 @@ def check_admin(target_member: discord.Member) -> bool:
         return True
     return False
 
-async def message_history_count(target_channel_id: int, target_member_id: int, limit: int = None, output: bool = False) -> int:
+async def message_history_count(trigger_message: str, target_channel_id: int, target_member: str, read_limit: int, limit: int = None, output: bool = False) -> int:
     """Get the total message count of a member.
 
     Args:
@@ -175,19 +176,30 @@ async def message_history_count(target_channel_id: int, target_member_id: int, l
     Returns:
         int: Total number of users message in that channel.
     """
+
     log("MESSAGE HISTORY COUNT:")
+    log(f'Triggered by user: {trigger_message.author}')
+    log(f'Triggered by user id: {trigger_message.author.id}')
+    log(f'Triggered by message: {trigger_message.content}')
+    log("")
     log(f'Checking message count in channel: {client.get_channel(target_channel_id)}')
-    log(f'Target user id: {target_member_id}')
+    log(f'Targeting user: {target_member}')
+    log(f'Targeting user id: {target_member.id}')
+    log(f'With read_limit: {read_limit}')
     log(f'With limit: {limit}')
-    log(f'Will print out in both console and log: {output}')
-    log("\n")
+    log(f'Will print out in both console and log?: {output}')
+    log("")
 
     message_count = 0
     async for message in client.get_channel(target_channel_id).history(limit=limit):
-        if message.author.id == target_member_id:
+        if message_count >= read_limit:
+            break
+        if message.author.id == target_member.id:
             if output:
                 log(message.content)
             message_count += 1
+    log("RESULT:")
+    log(f'Message count: {message_count}')
     return message_count
 
 # Simply responds with hello back to the user who issued the command
@@ -225,7 +237,7 @@ async def show_join_date(interaction: discord.Interaction, member: discord.Membe
 async def shutdown(interaction: discord.Interaction):
     """Shutdown the P2MM bot."""
 
-    # Check if user is Orsell or if testing mode is enabled
+    # Check if the user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -240,7 +252,7 @@ async def ping(interaction: discord.Interaction):
     """Pings the bot"""
 
     embed = discord.Embed(title="Ping", description=f'Pong! {round((client.latency * 1000), 2)} ms', colour=discord.Colour.brand_green())
-    log("Bot has been pinged...")
+    log(f"Bot has been pinged by user {interaction.user}...")
     await interaction.response.send_message(embed=embed)
 
 @client.tree.command(description="Test DMing using the bot")
@@ -248,7 +260,7 @@ async def ping(interaction: discord.Interaction):
 async def dm_test(interaction: discord.Interaction, member: Optional[discord.Member] = None):
     """Test DMing using the bot"""
 
-    # Check if user is Orsell or if testing mode is enabled
+    # Check if the user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -268,9 +280,10 @@ async def dm_test(interaction: discord.Interaction, member: Optional[discord.Mem
 @client.tree.command(description="Test the message that appears when someone first chats in #mod-help")
 async def mod_help_test(interaction: discord.Interaction):
     log(f'User "{interaction.user}" ran the mod_help_test command')
-    await interaction.response.send_message(
-        "**#mod-help MESSAGE TEST:**\n\nHey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!", 
-        ephemeral=True)
+    await message.reply(
+            "**#mod-help MESSAGE TEST:**\n\nHey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!\nDeleting message in 15 seconds...", 
+            mention_author=True,
+            delete_after=15)
 
 @client.tree.command(description="Grab the specified users last 50 messages or how many there are if less than 50 are present.")
 @app_commands.describe(
@@ -288,18 +301,18 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
             "The specified user to get the last 50 messages; defaults to the user who uses the command."
     """
 
-    # Check if user is Orsell or if testing mode is enabled
+    # Check if the user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
 
-    # If the channel itself is specified and not the name
+    # If the name of the channel is used, it can't be used and the channel itself must be specified with "#"
     if not "#" in channel:
         log(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
         await interaction.response.send_message(f'Channel name {channel} is invalid! Make sure you have the "#" in front to target the channel!')
         return
 
-    # We need to remove the additional symbols that come with it
+    # We need to remove the additional symbols that come with the channel
     original_channel = channel
     channel = int(channel.replace("<", "").replace("#", "").replace(">", ""))
 
@@ -315,8 +328,7 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
         return  
     
     # Count up the number of messages the author sent
-    message_count = await message_history_count(channel, member.id, 50, True)
-    
+    message_count = await message_history_count(interaction.message, channel, member, 50, 50, True)
     # If there are 0 messages in the channel it will report as so
     if message_count == 0:
         log(f'No messages of user "{member}" were found in "{original_channel}"')
@@ -328,8 +340,9 @@ async def message_history_test(interaction: discord.Interaction, channel: str, m
 
 @client.tree.command(description="Test the Test Modal")
 async def test_modal(interaction: discord.Interaction):
+    """Runs the test modal to be displayed."""
 
-    # Check if user is Orsell or if testing mode is enabled
+    # Check if the user is Orsell or if testing mode is enabled
     if not check_admin(interaction.user):
         await interaction.response.send_message("You do not have permission to run this command!", ephemeral=True)
         return
@@ -344,11 +357,15 @@ async def on_message(message: discord.Message):
         return
     
     #log(f'Message from id {message.author.id}, author name {message.author}, in channel {message.channel}, with id {message.channel.id}: {message.content}")
-    if (message.channel.id == mod_help_channel_id) and (await message_history_count(mod_help_channel_id, message.author.id, output=None) == 1) and (not message.author.bot):
+    if (message.channel.id == mod_help_channel_id) and (not message.author.bot):
+        if (await message_history_count(message, mod_help_channel_id, message.author, 1, None, False) == 1):
+            return
+        
         log(f'New comer in #mod-help! User: {message.author} ID: {message.author.id}')
-        await discord.Interaction.response.send_message(
-            "Hey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!", 
-            ephemeral=True)
+        await message.reply(
+            "Hey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!\nDeleting message in 15 seconds...", 
+            mention_author=True,
+            delete_after=15)
         return
     
     if not message.content.startswith(debug_prefix):
@@ -359,12 +376,12 @@ async def on_message(message: discord.Message):
         await message.reply("Hello!", mention_author=True)
 
 @client.event
-async def on_error(self, event: str, error: Exception):
-    log(f'ERROR: An non-fatal error occurred! With event: {event}')
-    log(traceback.print_exception(type(error), error, error.__traceback__))
-    logging.error(f'An non-fatal error occurred! With event: {event}')
-    logging.error(traceback.print_exception(type(error), error, error.__traceback__))
-    await client.get_channel(1062430492558888980).send("<@217027527602995200> ERROR: An error occurred with the bot! Check the console!")
+async def on_error(event_method: str, event: str):
+    print(f'\nERROR: An non-fatal error occurred! With event: {event_method}\nEvent details: \n{event}')
+    print(f'\n{traceback.format_exc()}')
+    logging.error(f'\nAn non-fatal error occurred! With event: {event_method}\nEvent details: \n{event}')
+    logging.error(f'\n{traceback.format_exc()}')
+    await client.get_channel(845791759984230433).send("<@217027527602995200> ERROR: An error occurred with the bot! Check the console!")
 
 # START THE BOT!!!
 try:
