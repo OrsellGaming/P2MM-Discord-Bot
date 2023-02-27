@@ -28,6 +28,7 @@ def log(msg: str) -> None:
     Args:
         msg (str): Message to be sent.
     """
+    
     now = datetime.now()
     print(f'[{now.strftime("%d/%m/%Y %H:%M:%S")}] {msg}')
     logging.info(msg)
