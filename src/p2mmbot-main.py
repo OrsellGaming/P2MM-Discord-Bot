@@ -200,6 +200,7 @@ async def message_history_count(trigger_message: str, target_channel_id: int, ta
             message_count += 1
     log("RESULT:")
     log(f'Message count: {message_count}')
+    log("")
     return message_count
 
 # Simply responds with hello back to the user who issued the command
@@ -358,7 +359,7 @@ async def on_message(message: discord.Message):
     
     #log(f'Message from id {message.author.id}, author name {message.author}, in channel {message.channel}, with id {message.channel.id}: {message.content}")
     if (message.channel.id == mod_help_channel_id) and (not message.author.bot):
-        if (await message_history_count(message, mod_help_channel_id, message.author, 1, None, False) == 1):
+        if (await message_history_count(message, mod_help_channel_id, message.author, 2, None, False) > 1):
             return
         
         log(f'New comer in #mod-help! User: {message.author} ID: {message.author.id}')
