@@ -364,9 +364,8 @@ async def on_message(message: discord.Message):
         
         log(f'New comer in #mod-help! User: {message.author} ID: {message.author.id}')
         await message.reply(
-            "Hey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!\nDeleting message in 15 seconds...", 
-            mention_author=True,
-            delete_after=15)
+            "Hey there! It appears it's your first time messaging in the <#839751998445846568> channel!\nMake sure to check out the <#1027963220851429387> channel, your answer might be there!", 
+            mention_author=True)
         return
     
     if not message.content.startswith(debug_prefix):
